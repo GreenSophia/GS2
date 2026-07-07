@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Caveat:wght@500;700&display=swap');
+
+/* ==========================================================
+   Green Sophia デザイントークン
+   ロゴの手書きスクリプト / 水彩パステルの投稿 / 丸くやわらかい世界観
+   ========================================================== */
+:root {
+  --leaf:   #5FB57E;   /* ロゴのグリーン */
+  --leaf-d: #3E8F60;   /* 濃いめの葉 */
+  --deep:   #29513F;   /* 見出しのパイングリーン（Wixサイトの活動理念と同系） */
+  --ink:    #37453D;   /* 本文 */
+  --cream:  #FAF7EF;   /* 紙のようなオフホワイト背景 */
+  --sprout: #EAF4EC;   /* 若葉のサーフェス */
+  --sky:    #CBE3ED;   /* 海洋プラ投稿のパステルブルー */
+  --peach:  #F6D3C4;   /* 環境×アート投稿のピーチ */
+  --sun:    #F5E7BC;   /* 砂浜・ひまわりのイエロー */
+  --line:   #DCE7DD;   /* 罫線 */
+
+  --r-lg: 24px;
+  --r-md: 16px;
+  --r-sm: 10px;
+  --shadow: 0 6px 24px rgba(41, 81, 63, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Zen Maru Gothic', system-ui, sans-serif;
+  line-height: 1.75;
+}
+
+/* 背景にうっすら水彩のにじみ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(560px 380px at 8% -4%,  rgba(95,181,126,.10), transparent 68%),
+    radial-gradient(480px 360px at 96% 12%, rgba(203,227,237,.35), transparent 70%),
+    radial-gradient(520px 420px at 82% 96%, rgba(246,211,196,.28), transparent 70%);
+}
+
+a { color: var(--leaf-d); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3 { color: var(--deep); font-weight: 900; line-height: 1.4; margin: 0 0 .4em; }
+h1 { font-size: 1.6rem; letter-spacing: .06em; }
+h2 { font-size: 1.2rem; }
+h3 { font-size: 1.02rem; }
+
+/* 英字スクリプトの「まくら言葉」— ロゴの筆記体の echo */
+.eyebrow {
+  font-family: 'Caveat', cursive;
+  font-size: 1.5rem;
+  color: var(--leaf);
+  display: block;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.container { max-width: 880px; margin: 0 auto; padding: 20px 18px 90px; }
+
+/* ---------- ヘッダー ---------- */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(250, 247, 239, .88);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; color: var(--deep); font-weight: 900; }
+.brand .logo-script { font-family: 'Caveat', cursive; font-size: 1.5rem; color: var(--leaf-d); font-weight: 700; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav a {
+  padding: 7px 13px; border-radius: 999px; font-size: .88rem; font-weight: 700;
+  color: var(--deep);
+}
+.nav a:hover { background: var(--sprout); text-decoration: none; }
+.nav a.active { background: var(--leaf); color: #fff; }
+
+/* ---------- カード ---------- */
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 18px;
+}
+.card.tint-green { background: var(--sprout); }
+.card.tint-sky   { background: linear-gradient(160deg, #fff 30%, var(--sky)); }
+.card.tint-peach { background: linear-gradient(160deg, #fff 30%, var(--peach)); }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+
+/* ---------- ボタン ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: none; cursor: pointer;
+  font-family: inherit; font-weight: 700; font-size: .95rem;
+  padding: 11px 20px; border-radius: 999px;
+  background: var(--sprout); color: var(--deep);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(41,81,63,.14); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: var(--leaf); color: #fff; }
+.btn-ghost { background: transparent; border: 1.5px dashed var(--leaf); }
+.btn-sm { padding: 6px 14px; font-size: .84rem; }
+.btn:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+
+/* ---------- フォーム ---------- */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-weight: 700; font-size: .9rem; color: var(--deep); margin-bottom: 4px; }
+.field .hint { font-size: .78rem; color: #7d8b82; font-weight: 400; margin-left: 6px; }
+input[type="text"], input[type="number"], input[type="month"], input[type="url"],
+input[type="password"], select, textarea {
+  width: 100%;
+  font-family: inherit; font-size: .95rem;
+  padding: 10px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  background: #fff;
+  color: var(--ink);
+}
+textarea { min-height: 90px; resize: vertical; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--leaf);
+  box-shadow: 0 0 0 3px rgba(95,181,126,.18);
+}
+
+/* 選べるチップ（ラジオ/チェックの見た目） */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 7px 15px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--line); background: #fff;
+  font-size: .88rem; font-weight: 700; color: var(--ink);
+  user-select: none;
+}
+.chip.on { background: var(--leaf); border-color: var(--leaf); color: #fff; }
+
+/* ---------- タグ・バッジ ---------- */
+.tag {
+  display: inline-block; padding: 2px 11px; border-radius: 999px;
+  font-size: .76rem; font-weight: 700;
+}
+.tag-design  { background: var(--sky);   color: #2d566b; }
+.tag-sponsor { background: var(--sun);   color: #7a651f; }
+.tag-inbox   { background: var(--peach); color: #8a4d33; }
+
+/* ---------- プロンプト出力欄 ---------- */
+.prompt-out {
+  background: var(--sprout);
+  border: 1.5px dashed var(--leaf);
+  border-radius: var(--r-md);
+  padding: 16px;
+  font-size: .85rem;
+  white-space: pre-wrap;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* ---------- テーブル ---------- */
+.table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.table th { text-align: left; color: var(--deep); border-bottom: 2px solid var(--leaf); padding: 8px 10px; }
+.table td { border-bottom: 1px solid var(--line); padding: 9px 10px; }
+
+/* ---------- ストック一覧 ---------- */
+.stock-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px dashed var(--line); }
+.stock-item img { width: 92px; height: 92px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line); }
+.stock-meta { font-size: .78rem; color: #7d8b82; }
+
+/* ---------- その他 ---------- */
+.muted { color: #7d8b82; font-size: .86rem; }
+.divider-leaf { text-align: center; color: var(--leaf); margin: 26px 0 18px; letter-spacing: .5em; }
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--deep); color: #fff; font-weight: 700;
+  padding: 11px 22px; border-radius: 999px; box-shadow: var(--shadow); z-index: 50;
+}
+.empty {
+  text-align: center; padding: 34px 16px; color: #7d8b82;
+  border: 2px dashed var(--line); border-radius: var(--r-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+@media (max-width: 560px) {
+  .site-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  h1 { font-size: 1.35rem; }
+}
