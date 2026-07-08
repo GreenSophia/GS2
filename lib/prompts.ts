@@ -1,32 +1,42 @@
-// GS SNS Copilot prompts v3
+// ============================================================
+// プロンプトテンプレート
+// アプリの心臓部。ここを育てていくと出力の質が上がります。
+// ============================================================
 
-const VOICE = `# ブランドボイス
-- 一人称は使わない。事実と気持ちを短文で
-- 説教を避ける。「〜すべき」でなく「〜してみると」
-- 絵文字は1スライド0〜2個
-- 誇張しない、若者言葉と煽りは禁止`;
+const VOICE_GUIDE = `# ブランドボイス（誰が書いても口調を揃えるためのルール）
+- 一人称は使わない（「私たち」も基本使わない。主語を立てず、事実と気持ちを短文で並べる）
+- 説教・断定を避ける。「〜すべき」ではなく「〜してみると」「〜だった」という体験ベースの言い方
+- 絵文字は1スライドにつき0〜2個まで。多用しない（🌏🌿✨を中心に、毎回同じものを使い回さない）
+- 数字を出すときは必ず出典か体験に基づくものに絞り、誇張しない
+- 禁止表現：「エモい」「尊い」「ガチで」などの若者言葉の多用、過度な煽り文句（「絶対に」「必見」等）`;
 
-const CTX_MAIN = `# あなたの役割
-上智大学の環境活動サークル「Green Sophia」のSNS担当アシスタントです。
+const CIRCLE_CONTEXT_MAIN = `# あなたの役割
+あなたは上智大学の環境活動サークル「Green Sophia」のSNS担当アシスタントです。
 
-# 基本情報
-- 理念: Learn with us, act with Green Sophia, inspire others.
-- Instagram: @greensophia_insta（フォロワー約1,800人）
-- 姉妹アカウント「旅するGreen」、Podcast「GSラジオ」も展開
-- 活動: ビーチクリーン、環境×アート、企業コラボ、学食コラボ、農業体験
-- トーン: 水彩パステル、身近な切り口で環境問題への入口をつくる
+# サークルの基本情報
+- 活動理念: "Learn with us, act with Green Sophia, inspire others."（共に学び、共に行動することで、誰かを刺激する）
+- Instagram: @greensophia_insta（フォロワー約1,800人 / 学生サークルとしては大規模）
+- 姉妹アカウント「旅するGreen」、Podcast「GSラジオ」、オリジナルグッズも展開
+- 主な活動: ビーチクリーン、ごみアートコンテスト、環境×アート（廃コスメでアクセサリー等）、
+  企業コラボ（SARAYA等）、学食コラボ販売、農業体験、フェアトレード勉強会
+- 投稿トーン: やわらかいパステル・水彩・手描きテイスト。説教くさくならず、
+  「へぇ！」と思える身近な切り口で環境問題への入口をつくる
+- 絵文字は適度に使用（🌏✨など自然系）。堅すぎず、チャラすぎず。
 
-${VOICE}`;
 
-const CTX_TRAVEL = `# あなたの役割
-Green Sophiaの姉妹アカウント「旅するGreen」（@tabisurugreen_insta）のSNS担当アシスタントです。
+${VOICE_GUIDE}`;
 
-# 基本情報
-- コンセプト: クリーンから始まる繋がり。清掃活動をきっかけに文化・自然・観光の魅力を発信
-- 活動範囲: 四ッ谷クリーン→東京クリーン→Japan Clean Project（2026夏以降）
-- トーン: 本体より個人の旅日記・地域ルポに近い温度感
+const CIRCLE_CONTEXT_TRAVEL = `# あなたの役割
+あなたはGreen Sophiaの姉妹アカウント「旅するGreen」（@tabisurugreen_insta）のSNS担当アシスタントです。
 
-${VOICE}`;
+# アカウントの基本情報
+- コンセプト: "クリーンから始まる繋がり"。清掃活動をきっかけに、その土地の文化・歴史・自然・観光・お店・伝統・一次産業などの魅力を体験し発信することで、「歩きたくなる町」を増やしていく
+- 活動範囲: 四ッ谷クリーン（毎月・上智大学のある四ッ谷への感謝を込めて）→ 東京クリーン（都内各地）→ Japan Clean Project（2026年夏以降、日本各地を2〜3ヶ月に1度巡回）
+- 現地で出会った「環境家」（その地域で環境活動をしている人）の思いも伝える
+- パートナー企業・団体と共催イベントを行う「グリーンの輪」という仕組みがある
+- 投稿トーン: Green Sophia本体よりも、個人の旅日記・地域ルポに近い温度感。
+  「この町、歩いてみたくなる」「もう一度訪れたくなる」という読後感を大切にする。
+  清掃活動の様子だけで終わらせず、必ず「その土地の魅力」を伝える視点を入れる。`;
 
 export type PostPromptInput = {
   account: 'main' | 'travel';
@@ -39,64 +49,199 @@ export type PostPromptInput = {
   area?: string;
   charm?: string;
   peopleMet?: string;
-  recentRefs?: string[];
-  useWebSearch?: boolean;
+  recentRefs?: string[];   // 「記録」から拾った最近の参考ストック
+  useWebSearch?: boolean;  // Claudeにトレンドを検索させるか
 };
 
 export function buildPostPrompt(i: PostPromptInput): string {
-  const ctx = i.account === 'travel' ? CTX_TRAVEL : CTX_MAIN;
-  const travel = i.account === 'travel'
-    ? `- 訪問地: ${i.area || '未記入'}\n- 体験した魅力: ${i.charm || '未記入'}\n- 出会った人・団体: ${i.peopleMet || '未記入'}\n`
-    : '';
-  const refs = i.recentRefs && i.recentRefs.length
-    ? `\n# 部員が最近ためた参考\n${i.recentRefs.map(r => `- ${r}`).join('\n')}\n`
-    : '';
-  const search = i.useWebSearch
-    ? `\n# 執筆前に\nこのテーマ（${i.theme || 'テーマ'}）の最近のニュース・SNS話題をWeb検索してから執筆してください。\n`
-    : '';
-  return `${ctx}
-${refs}${search}
-# 依頼
-以下でInstagramカルーセル投稿の完成原稿を作成。
+  const context = i.account === 'travel' ? CIRCLE_CONTEXT_TRAVEL : CIRCLE_CONTEXT_MAIN;
 
-- テーマ: ${i.theme}
-- 詳細: ${i.detail || '特記なし'}
-${travel}- ターゲット: ${i.target}
+  const travelBlock = i.account === 'travel'
+    ? `- 訪問地: ${i.area || '（未記入）'}
+- 体験した魅力: ${i.charm || '（未記入）'}
+- 現地で出会った人・団体: ${i.peopleMet || '（未記入）'}
+`
+    : '';
+
+  const refsBlock = i.recentRefs && i.recentRefs.length
+    ? `\n# 部員が最近ためた参考情報\n（LINEで集めた「他団体の参考投稿」「気になったニュース」です。トーンや切り口の参考にしてください。丸写しはしないこと）\n${i.recentRefs.map((r) => `- ${r}`).join('\n')}\n`
+    : '';
+
+  const searchBlock = i.useWebSearch
+    ? `\n# 執筆前にすること\nこのテーマ（${i.theme || 'このテーマ'}）に関連する最近のニュースや、SNSで話題になっている切り口がないか、Web検索で調べてから執筆してください。関連する時事性があれば1枚目か本文に軽く触れ、なければ無理に絡めなくて構いません。\n`
+    : '';
+
+  return `${context}
+${refsBlock}${searchBlock}
+# 今回の依頼
+以下の条件で、Instagramカルーセル投稿の「Canvaに流し込む用の完成原稿」を作ってください。
+
+- 投稿テーマ: ${i.theme}
+- 内容・詳細: ${i.detail || '（特記なし。テーマから自然に展開してください）'}
+${travelBlock}- ターゲット: ${i.target}
 - 画像枚数: ${i.slides}枚
-- ゴール: ${i.goal}
-- CTA: ${i.cta || 'プロフィールのリンクをチェック'}
+- この投稿のゴール: ${i.goal}
+- 読者にしてほしい行動(CTA): ${i.cta || 'プロフィールのリンクをチェック / DMで気軽に質問'}
 
-# 出力
+# 出力フォーマット（このまま守ってください）
 ## スライド構成
-各スライドに: 役割/見出し15字以内/本文60字以内/ビジュアル指示
+各スライドについて:
+- 【n枚目】役割（表紙 / 問題提起 / 解説 / まとめ 等）
+- 見出し（15字以内・キャッチー）
+- 本文（スライドに載せる文。1枚あたり60字以内）
+- ビジュアル指示（Canvaで作る人向けの具体的なメモ。色味・イラスト・写真の指定）
 
 ## キャプション
-200〜300字、絵文字と改行で読みやすく、最後にCTA
-${i.account === 'travel' ? '- 必ずその土地の魅力に触れる一文を入れる\n' : ''}
+- 冒頭1行目はフィードで切れる前提で、続きを読みたくなる一文に
+- 本文は200〜300字、改行と絵文字で読みやすく
+- 最後にCTA
+${i.account === 'travel' ? '- 清掃活動の報告だけで終わらせず、必ずその土地の魅力（文化・自然・グルメ等）に触れる一文を入れる\n' : ''}
 ## ハッシュタグ
-15個前後を3グループに分けて`;
+3グループに分けて計15個前後:
+- ビッグタグ（#sdgs 等の大規模タグ）
+- ミドルタグ（#ビーチクリーン 等のテーマタグ）
+- 独自・大学タグ（#上智大学 ${i.account === 'travel' ? '#旅するgreen' : '#greensophia'} 等）
+
+# 注意
+- 1枚目は3秒で指を止めさせる。疑問形か意外な数字が有効
+- 専門用語には必ず一言の補足を
+- 誇張やエビデンスのない断定はしない`;
 }
 
+export function buildPostPrompt(i: PostPromptInput): string {
+  const context = i.account === 'travel' ? CIRCLE_CONTEXT_TRAVEL : CIRCLE_CONTEXT_MAIN;
+
+  const travelBlock = i.account === 'travel'
+    ? `- 訪問地: ${i.area || '（未記入）'}
+- 体験した魅力: ${i.charm || '（未記入）'}
+- 現地で出会った人・団体: ${i.peopleMet || '（未記入）'}
+`
+    : '';
+
+  return `${context}
+
+# 今回の依頼
+以下の条件で、Instagramカルーセル投稿の「Canvaに流し込む用の完成原稿」を作ってください。
+
+- 投稿テーマ: ${i.theme}
+- 内容・詳細: ${i.detail || '（特記なし。テーマから自然に展開してください）'}
+${travelBlock}- ターゲット: ${i.target}
+- 画像枚数: ${i.slides}枚
+- この投稿のゴール: ${i.goal}
+- 読者にしてほしい行動(CTA): ${i.cta || 'プロフィールのリンクをチェック / DMで気軽に質問'}
+
+# 出力フォーマット（このまま守ってください）
+## スライド構成
+各スライドについて:
+- 【n枚目】役割（表紙 / 問題提起 / 解説 / まとめ 等）
+- 見出し（15字以内・キャッチー）
+- 本文（スライドに載せる文。1枚あたり60字以内）
+- ビジュアル指示（Canvaで作る人向けの具体的なメモ。色味・イラスト・写真の指定）
+
+## キャプション
+- 冒頭1行目はフィードで切れる前提で、続きを読みたくなる一文に
+- 本文は200〜300字、改行と絵文字で読みやすく
+- 最後にCTA
+${i.account === 'travel' ? '- 清掃活動の報告だけで終わらせず、必ずその土地の魅力（文化・自然・グルメ等）に触れる一文を入れる\n' : ''}
+## ハッシュタグ
+3グループに分けて計15個前後:
+- ビッグタグ（#sdgs 等の大規模タグ）
+- ミドルタグ（#ビーチクリーン 等のテーマタグ）
+- 独自・大学タグ（#上智大学 ${i.account === 'travel' ? '#旅するgreen' : '#greensophia'} 等）
+
+# 注意
+- 1枚目は3秒で指を止めさせる。疑問形か意外な数字が有効
+- 専門用語には必ず一言の補足を
+- 誇張やエビデンスのない断定はしない`;
+}
+# 今回の依頼
+Instagramの月次インサイトを分析し、来月の運用施策を提案してください。
+
+# ${i.month} の実績データ
+- フォロワー数: ${i.followers}（前月比 ${i.followersDiff || '不明'}）
+- 月間リーチ: ${i.reach}
+- プロフィール閲覧数: ${i.profileViews || '未計測'}
+- 投稿数: ${i.postsCount}
+- 最も伸びた投稿: ${i.bestPost || '未記入'}
+- 伸びなかった投稿: ${i.worstPost || '未記入'}
+- 今月試したこと: ${i.tried || '特になし'}
+
+# 出力フォーマット
+## 1. 今月のひとこと総評（3行以内）
+## 2. 数字から読み取れること（良かった点・課題点を各2〜3個、必ず数字を根拠に）
+## 3. 伸びた/伸びなかった投稿の仮説（なぜそうなったか）
+## 4. 来月の施策 3つ（それぞれ「何を・いつ・どう測るか」まで具体的に）
+## 5. 来月の投稿ネタ 5案（1行ずつ。サークルの活動テーマに沿って）
+
+# 注意
+- 学生が週数時間で運用している前提で、無理のない施策に
+- 「バズらせる」より「入会・イベント参加につなげる」ことを優先`;
+}
+
+// ---------- メディアキット用テキスト ----------
+export type MetricRow = {
+  month: string;
+  followers: number | null;
+  reach: number | null;
+  profile_views: number | null;
+  posts_count: number | null;
+  best_post: string | null;
+};
+
+export function buildMediaKitText(rows: MetricRow[]): string {
+  const fmt = (n: number | null) => (n == null ? '—' : n.toLocaleString('ja-JP'));
+  const lines = rows.map((r) => {
+    const m = new Date(r.month + 'T00:00:00');
+    const label = `${m.getFullYear()}年${m.getMonth() + 1}月`;
+    return `- ${label}: フォロワー ${fmt(r.followers)}人 / リーチ ${fmt(r.reach)} / プロフィール閲覧 ${fmt(r.profile_views)} / 投稿 ${fmt(r.posts_count)}本`;
+  });
+  const latest = rows[0];
+  return `【Green Sophia Instagram 実績サマリー】
+上智大学環境活動サークル Green Sophia（@greensophia_insta）
+
+■ 最新の規模
+フォロワー: ${fmt(latest?.followers ?? null)}人 / 直近月間リーチ: ${fmt(latest?.reach ?? null)}
+
+■ 月次推移
+${lines.join('\n')}
+
+■ アカウントの特徴
+・学生サークルとしては国内有数の規模の環境系アカウント
+・ビーチクリーン、環境×アート、企業コラボ、学食コラボなど幅広い企画力
+・Podcast「GSラジオ」、姉妹アカウント「旅するGreen」等のメディア展開
+
+※本データはInstagramインサイトに基づく自社集計です。`;
+}
+// ---------- 画像生成プロンプト（ChatGPT / Gemini 用） ----------
 export type ImagePromptInput = {
   theme: string;
   detail: string;
-  mood: string;
-  slideRole: string;
+  mood: string;      // 雰囲気キーワード（水彩風、パステル 等）
+  slideRole: string;  // 表紙 / 中面 / まとめ 等
 };
 
 export function buildImagePrompt(i: ImagePromptInput): string {
-  return `Instagram投稿用画像を1枚生成してください。
+  return `Instagram投稿用の画像を1枚生成してください。
 
-【内容】${i.theme}${i.detail ? `（${i.detail}）` : ''}をテーマにした${i.slideRole || '投稿用'}の画像
+【内容】
+${i.theme}${i.detail ? `（${i.detail}）` : ''}をテーマにした、${i.slideRole || '投稿用'}の画像。
 
-【雰囲気】${i.mood || 'やわらかい水彩・パステル、手描き風'}
-親しみやすく、学生サークルらしい温かみ
+【雰囲気・スタイル】
+${i.mood || 'やわらかい水彩・パステルカラー、手描き風のイラストテイスト'}。
+説教くさくなく、親しみやすい印象。学生サークルらしい温かみのある表現。
 
-【構図】1:1または4:5、文字なし、文字を後から重ねる余白あり、色数3〜4色
+【構図・技術指定】
+- 正方形（1:1）またはInstagram縦長（4:5）に収まる構図
+- 文字は入れず、イラスト・写真的な要素のみで構成
+- 背景に強すぎるコントラストを避け、Canva上で文字を後から重ねられる余白を左右または上下に残す
+- 色数は3〜4色程度に抑え、統一感のある配色にする
 
-【避ける】過度にリアルな表現、実在ブランド、文字・ロゴ・透かし`;
+【避けたいこと】
+- 過度にリアルで生々しい表現
+- 特定の実在ブランドロゴや商標
+- 文字・ロゴ・透かしの生成`;
 }
-
+// ---------- 分析プロンプト（アカウント対応版） ----------
 export type AnalysisPromptInput = {
   account: 'main' | 'travel';
   month: string;
@@ -111,289 +256,289 @@ export type AnalysisPromptInput = {
 };
 
 export function buildAnalysisPrompt(i: AnalysisPromptInput): string {
-  const ctx = i.account === 'travel'
-    ? 'あなたは旅するGreen（@tabisurugreen_insta）のSNS分析アシスタントです。清掃活動をきっかけに土地の魅力を発信するアカウントです。'
-    : 'あなたはGreen SophiaのSNS分析アシスタントです。理念はLearn with us, act with Green Sophia, inspire others.です。';
-  return `${ctx}
+  const context = i.account === 'travel'
+    ? `あなたはGreen Sophiaの姉妹アカウント「旅するGreen」（@tabisurugreen_insta）のSNS分析アシスタントです。
+このアカウントは"クリーンから始まる繋がり"をコンセプトに、清掃活動をきっかけにその土地の文化・自然・観光の魅力を発信し、
+「歩きたくなる町」を増やすことを目指しています。四ッ谷クリーン→東京クリーン→日本各地(Japan Clean Project)へと活動範囲を広げている段階です。`
+    : `あなたは上智大学の環境活動サークル「Green Sophia」のSNS分析アシスタントです。
+活動理念は"Learn with us, act with Green Sophia, inspire others."(共に学び、共に行動することで、誰かを刺激する)です。`;
 
-# 依頼
-Instagramの月次インサイトを分析し、来月の施策を提案してください。
+  return `${context}
 
-# ${i.month} 実績
-- フォロワー: ${i.followers}（前月比 ${i.followersDiff || '不明'}）
-- リーチ: ${i.reach}
-- プロフ閲覧: ${i.profileViews || '未計測'}
+# 今回の依頼
+Instagramの月次インサイトを分析し、来月の運用施策を提案してください。
+
+# ${i.month} の実績データ
+- フォロワー数: ${i.followers}（前月比 ${i.followersDiff || '不明'}）
+- 月間リーチ: ${i.reach}
+- プロフィール閲覧数: ${i.profileViews || '未計測'}
 - 投稿数: ${i.postsCount}
-- 伸びた投稿: ${i.bestPost || '未記入'}
-- 伸びなかった: ${i.worstPost || '未記入'}
-- 試したこと: ${i.tried || 'なし'}
+- 最も伸びた投稿: ${i.bestPost || '未記入'}
+- 伸びなかった投稿: ${i.worstPost || '未記入'}
+- 今月試したこと: ${i.tried || '特になし'}
 
-# 出力
-## 1. 総評（3行）
-## 2. 数字から読み取れること（良かった/課題を各2〜3個、数字根拠で）
-## 3. 伸びた/伸びない仮説
-## 4. 来月の施策3つ（何を・いつ・どう測るか）
-## 5. 来月の投稿ネタ5案
+# 出力フォーマット
+## 1. 今月のひとこと総評（3行以内）
+## 2. 数字から読み取れること（良かった点・課題点を各2〜3個、必ず数字を根拠に）
+## 3. 伸びた/伸びなかった投稿の仮説（なぜそうなったか）
+## 4. 来月の施策 3つ（それぞれ「何を・いつ・どう測るか」まで具体的に）
+## 5. 来月の投稿ネタ 5案（1行ずつ。${i.account === 'travel' ? '訪問予定地や、その土地ならではの切り口を意識して' : 'サークルの活動テーマに沿って'}）
 
 # 注意
-- 学生が週数時間で運用できる範囲
-- ${i.account === 'travel' ? 'その町に行きたいと思わせる、パートナー縁につなげる' : '入会・イベント参加につなげる'}ことを優先`;
+- 学生が週数時間で運用している前提で、無理のない施策に
+- 「バズらせる」より「${i.account === 'travel' ? 'その町に行ってみたいと思わせる、パートナー団体との縁につなげる' : '入会・イベント参加につなげる'}」ことを優先`;
 }
 
-export type MetricRow = {
-  month: string;
-  followers: number | null;
-  reach: number | null;
-  profile_views: number | null;
-  posts_count: number | null;
-  best_post: string | null;
-};
-
-export function buildMediaKitText(rows: MetricRow[]): string {
-  const fmt = (n: number | null) => (n == null ? '—' : n.toLocaleString('ja-JP'));
-  const lines = rows.map((r) => {
-    const m = new Date(r.month + 'T00:00:00');
-    return `- ${m.getFullYear()}年${m.getMonth() + 1}月: フォロワー${fmt(r.followers)}人 / リーチ${fmt(r.reach)} / プロフ${fmt(r.profile_views)} / 投稿${fmt(r.posts_count)}本`;
-  });
-  const latest = rows[0];
-  return `【Green Sophia Instagram 実績サマリー】
-上智大学環境活動サークル Green Sophia（@greensophia_insta）
-
-■ 最新の規模
-フォロワー: ${fmt(latest?.followers ?? null)}人 / 直近月間リーチ: ${fmt(latest?.reach ?? null)}
-
-■ 月次推移
-${lines.join('\n')}
-
-■ 特徴
-・学生サークルとしては国内有数の環境系アカウント
-・ビーチクリーン、環境×アート、企業コラボなど幅広い企画力
-・Podcast「GSラジオ」、姉妹アカウント「旅するGreen」等のメディア展開
-
-※本データはInstagramインサイトに基づく自社集計です。`;
-}
-
+// ---------- 企業リサーチプロンプト ----------
 export type CompanyResearchInput = {
-  industryHint: string;
-  budgetHint: string;
-  goal: string;
+  industryHint: string;   // 業界・分野のヒント（省略可）
+  budgetHint: string;     // 予算感・規模のヒント（省略可）
+  goal: string;           // このコラボで達成したいこと
 };
 
 export function buildCompanyResearchPrompt(i: CompanyResearchInput): string {
-  return `Green Sophia渉外アシスタントです。Web検索で調査してください。
+  return `あなたはGreen Sophiaの渉外担当アシスタントです。Web検索を使って調査してください。
 
-# 基本
-- 上智大学 環境活動サークル、部員40名、Instagram1,800人
-- 活動: ビーチクリーン、環境×アート、企業コラボ、学食コラボ
-- 強み: 学生団体では珍しくPodcast・姉妹アカウントを持つ発信力
-- 実績: SARAYA「緑の回廊」等
+# サークルの基本情報
+- 上智大学の環境活動サークル「Green Sophia」。部員約40名、Instagramフォロワー約1,800人
+- 主な活動: ビーチクリーン、環境×アート、企業コラボ、学食コラボ、農業体験、フェアトレード勉強会
+- 強み: 学生サークルとしては珍しく、Podcast・姉妹アカウント「旅するGreen」まで持つ発信力
+- 過去の実績: SARAYA「緑の回廊プロジェクト」等とのコラボ経験あり
 
 # 依頼
-以下の条件に合う企業を7〜10社リサーチ。
+以下の条件に合う、コラボ・スポンサーの交渉に行けそうな企業を7〜10社リサーチし、リストアップしてください。
 
-- 業界ヒント: ${i.industryHint || '環境・サステナビリティ関連全般'}
-- 予算感: ${i.budgetHint || '学生団体との協業実績がある中堅〜大手'}
-- 達成したいこと: ${i.goal || '継続的なコラボ関係'}
+- 業界・分野のヒント: ${i.industryHint || '環境・サステナビリティに関連する事業を持つ企業全般'}
+- 予算感・規模のヒント: ${i.budgetHint || '学生団体との協業実績がある、または相性が良さそうな中堅〜大手企業'}
+- このコラボで達成したいこと: ${i.goal || '継続的なコラボ関係の構築'}
 
-# 出力
-企業ごとに:
+# 出力フォーマット
+企業ごとに以下を整理してください。
 - 企業名
-- Green Sophiaと相性が良い理由（1〜2文）
-- 想定コラボ切り口
-- CSR・サステナ活動の有無
-- 交渉の入口窓口
+- なぜGreen Sophiaと相性が良さそうか（1〜2文）
+- 想定できるコラボの切り口（例: 商品コラボ、イベント共催、寄付・物品協賛 等）
+- 学生団体との協業実績や、CSR・サステナビリティ活動の有無（分かれば）
+- 交渉の入口になりそうな部署・窓口（分かれば。分からなければ一般的な問い合わせ先で可）
 
-最後に上位3社と理由。`;
+最後に、7〜10社の中で「特に交渉に行く価値が高い」と思う上位3社と、その理由を挙げてください。`;
 }
 
+// ---------- 企業への提案文プロンプト ----------
 export type CompanyPitchInput = {
   companyName: string;
-  companyContext: string;
-  proposalIdea: string;
-  format: 'email' | 'onepager';
+  companyContext: string; // その企業について分かっていること
+  proposalIdea: string;   // 提案したいコラボ内容
+  format: 'email' | 'onepager'; // メール文 or 提案資料の構成
 };
 
 export function buildCompanyPitchPrompt(i: CompanyPitchInput): string {
-  const fmt = i.format === 'email'
-    ? '担当者様に送るコラボ提案メール文面を、件名込みで作成してください。'
-    : '提案資料（1枚もの）の構成案を、見出しと各項目内容つきで作成してください。';
-  return `Green Sophia渉外アシスタントです。
+  const formatInstruction = i.format === 'email'
+    ? '企業のご担当者様に送る、コラボ提案メールの文面を作成してください。件名も含めてください。'
+    : '企業への提案資料（1枚もの / いわゆる One Pager）の構成案を、見出しと各項目の内容つきで作成してください。';
 
-# 基本
-- 上智大学 環境活動サークル、部員40名、Instagram1,800人
-- 活動: ビーチクリーン、環境×アート、企業コラボ、学食コラボ
-- 強み: Podcast・姉妹アカウントを持つ発信力
-- 実績: SARAYA「緑の回廊」等
+  return `あなたはGreen Sophiaの渉外担当アシスタントです。
 
-# 依頼
-${fmt}
+# サークルの基本情報
+- 上智大学の環境活動サークル「Green Sophia」。部員約40名、Instagramフォロワー約1,800人
+- 主な活動: ビーチクリーン、環境×アート、企業コラボ、学食コラボ、農業体験
+- 強み: 学生サークルとしては珍しく、Podcast・姉妹アカウント「旅するGreen」まで持つ発信力
+- 過去の実績: SARAYA「緑の回廊プロジェクト」等とのコラボ経験あり
+
+# 今回の依頼
+${formatInstruction}
 
 - 相手企業: ${i.companyName}
-- 企業について: ${i.companyContext || '特記なし'}
-- 提案内容: ${i.proposalIdea}
+- 企業について分かっていること: ${i.companyContext || '（特記なし）'}
+- 提案したいコラボ内容: ${i.proposalIdea}
 
 # 注意
-- 学生団体の熱意を残しつつビジネス文書として丁寧に
-- 相手のメリット（発信力、若年層リーチ、CSR文脈）を必ず盛り込む
-- 誇張しない`;
+- 学生団体らしい熱意は残しつつ、ビジネス文書として失礼のない丁寧さを保つ
+- 相手企業にとっての具体的なメリット（発信力、若年層へのリーチ、CSR文脈など）を必ず盛り込む
+- 誇張した実績や、確認の取れていない数字は書かない`;
 }
 
+// ---------- 活動告知文（メンバー向け／SNS向け／外部向け） ----------
 export type AnnouncementInput = {
   eventName: string;
   datetime: string;
   place: string;
   detail: string;
-  bringItems: string;
+  bringItems: string;   // 持ち物（メンバー向けに使用）
   audience: 'member' | 'sns' | 'external' | 'all';
-  externalOrg: string;
+  externalOrg: string;  // 外部向け：宛先団体名（省略可）
 };
 
-function memberAnn(i: AnnouncementInput): string {
+function memberAnnouncement(i: AnnouncementInput): string {
   return `# 依頼
-Green SophiaのLINEグループに送る部員向け連絡。簡潔、結論から。
+これはGreen SophiaのLINEグループに送る、部員向けの活動連絡です。
+簡潔で読み飛ばされない、箇条書き中心の連絡文を作ってください。挨拶は最小限、結論から書いてください。
 
-# 情報
-- ${i.eventName} / ${i.datetime} / ${i.place}
-- 内容: ${i.detail || 'なし'}
-- 持ち物: ${i.bringItems || 'なし'}
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
+- 持ち物: ${i.bringItems || '（特になし）'}
 
-# 出力
-- 1行目: イベント名と日時が一目でわかるタイトル
-- 箇条書きで日時・集合・持ち物・注意
-- 最後に「参加できる人はスタンプで」等の一言`;
+# 出力形式
+- 1行目：イベント名と日時が一目でわかるタイトル
+- 箇条書きで「日時・集合場所・持ち物・注意事項」
+- 最後に「参加できる人はスタンプで教えてください」のような一言
+- 絵文字は見出し程度に少量`;
 }
 
-function snsAnn(i: AnnouncementInput): string {
+function snsAnnouncement(i: AnnouncementInput): string {
   return `# 依頼
-Instagram用のイベント直前告知。期待感、堅苦しくならない。
+これはInstagramに投稿する、イベント直前の告知文です。
+外部の人が読んでも魅力が伝わるよう、期待感を持たせる文章にしてください。堅苦しくならないこと。
 
-# 情報
-- ${i.eventName} / ${i.datetime} / ${i.place}
-- 内容: ${i.detail || 'なし'}
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
 
-# 出力
-## キャプション（200〜300字）
-## ストーリーズ短文
-## ハッシュタグ10個程度`;
+# 出力形式
+## キャプション（200〜300字、絵文字を交え読みやすく）
+## ストーリーズ用の短文（1〜2行、リンクへの誘導つき）
+## ハッシュタグ（10個程度）`;
 }
 
-function externalAnn(i: AnnouncementInput): string {
+function externalAnnouncement(i: AnnouncementInput): string {
   return `# 依頼
-${i.externalOrg ? `${i.externalOrg}様` : '外部関係者'}への案内メール文面。学生団体らしい丁寧さで。
+これは${i.externalOrg ? `${i.externalOrg}様` : '外部の関係者・団体'}に送る、活動案内のメール文面です。
+学生団体らしい丁寧さと熱意を保ちながら、ビジネスメールとして失礼のない文章にしてください。
 
-# 情報
-- ${i.eventName} / ${i.datetime} / ${i.place}
-- 内容: ${i.detail || 'なし'}
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
 
-# 出力
-件名込みメール文面。挨拶、開催概要、参加歓迎、問合せ先、結び。`;
+# 出力形式
+件名も含めたメール文面を作成してください。
+- 挨拶
+- 開催概要（日時・場所・内容）
+- 参加や見学を歓迎する旨
+- 問い合わせ先を書く一文（「本メールにご返信ください」等）
+- 結びの挨拶`;
 }
 
 export function buildAnnouncementPrompt(i: AnnouncementInput): string {
-  if (i.audience === 'member') return memberAnn(i);
-  if (i.audience === 'sns') return snsAnn(i);
-  if (i.audience === 'external') return externalAnn(i);
-  return `以下のイベントの3種類の告知文を作成。
+  if (i.audience === 'member') return memberAnnouncement(i);
+  if (i.audience === 'sns') return snsAnnouncement(i);
+  if (i.audience === 'external') return externalAnnouncement(i);
+  // 'all'：3つまとめて1つのプロンプトで依頼する
+  return `以下のイベントについて、3種類の告知文を1度に作成してください。
 
-# 情報
-- ${i.eventName} / ${i.datetime} / ${i.place}
-- 内容: ${i.detail || 'なし'} / 持ち物: ${i.bringItems || 'なし'}
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
+- 持ち物: ${i.bringItems || '（特になし）'}
 
-## ① メンバー向け（LINE）
-結論から、箇条書き中心
+---
 
-## ② SNS向け（Instagram）
-キャプション200〜300字＋ストーリーズ短文＋ハッシュタグ10個
+## ① メンバー向け（LINEグループ連絡）
+簡潔で読み飛ばされない箇条書き中心。結論から。「日時・集合場所・持ち物・注意事項」を箇条書きで。
 
-## ③ 外部向け（メール）
-件名つき、丁寧、開催概要と参加歓迎と問合せ先を含む`;
+## ② SNS向け（Instagram告知）
+外部の人が読んでも魅力が伝わる、期待感のある文章。キャプション（200〜300字）＋ストーリーズ用短文＋ハッシュタグ10個。
+
+## ③ 外部向け（案内メール）
+丁寧で失礼のないメール文面。件名つき。開催概要、参加・見学歓迎の旨、問い合わせ先を含める。`;
 }
 
-export type AgendaItem = {
-  topic: string;
-  rawNotes: string;
-  decision: string;
-  owner: string;
-  deadline: string;
+// ---------- 活動告知文（メンバー向け／SNS向け／外部向け） ----------
+export type AnnouncementInput = {
+  eventName: string;
+  datetime: string;
+  place: string;
+  detail: string;
+  bringItems: string;   // 持ち物（メンバー向けに使用）
+  audience: 'member' | 'sns' | 'external' | 'all';
+  externalOrg: string;  // 外部向け：宛先団体名（省略可）
 };
 
-export type MeetingInput = {
-  meetingName: string;
-  date: string;
-  attendees: string;
-  absentees: string;
-  items: AgendaItem[];
-};
+function memberAnnouncement(i: AnnouncementInput): string {
+  return `# 依頼
+これはGreen SophiaのLINEグループに送る、部員向けの活動連絡です。
+簡潔で読み飛ばされない、箇条書き中心の連絡文を作ってください。挨拶は最小限、結論から書いてください。
 
-export function buildMeetingPrompt(i: MeetingInput): string {
-  const items = i.items.map((it, idx) => `
-### 議題${idx + 1}: ${it.topic || '未記入'}
-- 話した内容: ${it.rawNotes || '未記入'}
-- 決定: ${it.decision || '未記入'}
-- 担当: ${it.owner || '未記入'}
-- 期限: ${it.deadline || '未記入'}`).join('\n');
-  return `Green Sophia議事録アシスタントです。
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
+- 持ち物: ${i.bringItems || '（特になし）'}
 
-# 会議
-- 会議名: ${i.meetingName || '未記入'}
-- 日時: ${i.date || '未記入'}
-- 出席: ${i.attendees || '未記入'}
-- 欠席: ${i.absentees || 'なし'}
-
-# 議題メモ
-${items}
-
-# 依頼
-上のメモから議事録に整形。書かれていない決定を勝手に作らない（不明は「要確認」）。
-
-# 出力
-## 会議概要
-## 決定事項サマリー（箇条書き）
-## タスク一覧（担当｜内容｜期限）
-## 議題ごとの詳細
-## 次回への持ち越し
-
-# 注意
-- 曖昧な発言は「議論」として扱い決定に含めない
-- タスクは必ず担当者名を明記（不明なら「担当者未定」）`;
+# 出力形式
+- 1行目：イベント名と日時が一目でわかるタイトル
+- 箇条書きで「日時・集合場所・持ち物・注意事項」
+- 最後に「参加できる人はスタンプで教えてください」のような一言
+- 絵文字は見出し程度に少量`;
 }
 
-export type PrepPlanInput = {
-  account: 'main' | 'travel';
-  activityIdea: string;
-  date: string;
-  useWebSearch: boolean;
-};
+function snsAnnouncement(i: AnnouncementInput): string {
+  return `# 依頼
+これはInstagramに投稿する、イベント直前の告知文です。
+外部の人が読んでも魅力が伝わるよう、期待感を持たせる文章にしてください。堅苦しくならないこと。
 
-export function buildPrepPlanPrompt(i: PrepPlanInput): string {
-  const ctx = i.account === 'travel'
-    ? '旅するGreen（清掃活動をきっかけに土地の魅力を発信）'
-    : 'Green Sophia（上智大学環境活動サークル）';
-  const search = i.useWebSearch
-    ? `\n# 調べてほしいこと\nWeb検索で実施予定時期（${i.date || '近い将来'}）の季節イベント・話題・トレンドを調べ、企画案に反映してください。\n`
-    : '';
-  const theme = i.activityIdea ? `- 予定活動: ${i.activityIdea}` : '- 予定活動: 未定（この時期にできそうな活動から提案）';
-  return `${ctx}の活動企画・撮影プランナーです。
-「活動後に投稿ネタに困る」「撮り忘れ」を防ぐのが目的。
-${search}
-# 相談
-${theme}
-- 実施予定日: ${i.date || '未定'}
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
 
-# 依頼
+# 出力形式
+## キャプション（200〜300字、絵文字を交え読みやすく）
+## ストーリーズ用の短文（1〜2行、リンクへの誘導つき）
+## ハッシュタグ（10個程度）`;
+}
 
-## 1. 企画アイデア
-${i.activityIdea ? '発信につながる工夫を2〜3個' : '今の時期にできそうな活動アイデアを3つ'}
+function externalAnnouncement(i: AnnouncementInput): string {
+  return `# 依頼
+これは${i.externalOrg ? `${i.externalOrg}様` : '外部の関係者・団体'}に送る、活動案内のメール文面です。
+学生団体らしい丁寧さと熱意を保ちながら、ビジネスメールとして失礼のない文章にしてください。
 
-## 2. 撮影チェックリスト
-「撮っておけばよかった」を防ぐため、具体的なショットを7〜10個。各項目に:
-- いつ撮るか（活動前/中/後）
-- 何を撮るか（具体的に）
-- なぜ必要か（投稿での使い道）
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
 
-## 3. 準備しておく素材・小道具
+# 出力形式
+件名も含めたメール文面を作成してください。
+- 挨拶
+- 開催概要（日時・場所・内容）
+- 参加や見学を歓迎する旨
+- 問い合わせ先を書く一文（「本メールにご返信ください」等）
+- 結びの挨拶`;
+}
 
-# 注意
-- 学生団体が無理なく準備できる範囲
-- 実現可能性を優先`;
+export function buildAnnouncementPrompt(i: AnnouncementInput): string {
+  if (i.audience === 'member') return memberAnnouncement(i);
+  if (i.audience === 'sns') return snsAnnouncement(i);
+  if (i.audience === 'external') return externalAnnouncement(i);
+  // 'all'：3つまとめて1つのプロンプトで依頼する
+  return `以下のイベントについて、3種類の告知文を1度に作成してください。
+
+# イベント情報
+- イベント名: ${i.eventName}
+- 日時: ${i.datetime}
+- 場所: ${i.place}
+- 内容: ${i.detail || '（特記なし）'}
+- 持ち物: ${i.bringItems || '（特になし）'}
+
+---
+
+## ① メンバー向け（LINEグループ連絡）
+簡潔で読み飛ばされない箇条書き中心。結論から。「日時・集合場所・持ち物・注意事項」を箇条書きで。
+
+## ② SNS向け（Instagram告知）
+外部の人が読んでも魅力が伝わる、期待感のある文章。キャプション（200〜300字）＋ストーリーズ用短文＋ハッシュタグ10個。
+
+## ③ 外部向け（案内メール）
+丁寧で失礼のないメール文面。件名つき。開催概要、参加・見学歓迎の旨、問い合わせ先を含める。`;
 }
