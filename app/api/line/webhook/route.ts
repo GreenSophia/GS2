@@ -6,11 +6,11 @@ export const runtime = 'nodejs';
 
 // ============================================================
 // LINE Bot Webhook
-// - 画像を送る          → Storageに保存して「参考デザイン」棚へ
-// - 「スポンサー <URL> メモ」 → 「スポンサー候補」棚へ
-// - 「デザイン <URL> メモ」  → 「参考デザイン」棚へ
-// - それ以外のテキスト   → 「ひらめきメモ」棚へ
-// Make/Zapierは不要。LINE → このルート → Supabase の直結構成。
+// - 画像を送る                    → Storageに保存して「参考デザイン」棚へ
+// - 「スポンサー <URL> メモ」       → 「スポンサー候補」棚へ
+// - 「デザイン <URL> メモ」        → 「参考デザイン」棚へ
+// - 「メモしてください <本文>」     → 「ひらめきメモ」棚へ
+// - それ以外の普通の会話           → 無視（記録しない・返信しない）
 // ============================================================
 
 function verifySignature(rawBody: string, signature: string | null): boolean {
@@ -48,6 +48,8 @@ async function getDisplayName(userId: string | undefined): Promise<string | null
 }
 
 const URL_RE = /(https?:\/\/[^\s]+)/;
+// 「メモして」「メモしてください」「メモ:」など、メモの合言葉を幅広く拾う
+const MEMO_TRIGGER_RE = /^(メモして(ください)?|メモ[:：]?)\s*/i;
 
 export async function POST(req: Request) {
   const rawBody = await req.text();
@@ -85,9 +87,9 @@ export async function POST(req: Request) {
             image_path: path,
             sent_by: sentBy,
           });
-          await lineReply(event.replyToken, '参考デザインとして棚に入れたよ 🖼✨\nアプリの「🌱ためる」で見られます');
+          await lineReply(event.replyToken, '参考デザインとして記録しました。アプリの「記録」で確認できます。');
         } else {
-          await lineReply(event.replyToken, '保存に失敗しちゃった…もう一度送ってみて 🙏');
+          await lineReply(event.replyToken, '画像の保存に失敗しました。もう一度送ってください。');
         }
       }
       continue;
@@ -99,25 +101,30 @@ export async function POST(req: Request) {
       const urlMatch = text.match(URL_RE);
       const url = urlMatch ? urlMatch[1] : null;
 
-      let type: 'design' | 'sponsor' | 'inbox' = 'inbox';
-      if (/^(スポンサー|すぽんさー|sp)/i.test(text)) type = 'sponsor';
-      else if (/^(デザイン|でざいん|design)/i.test(text)) type = 'design';
+      // ① スポンサー／デザイン の合言葉
+      if (/^(スポンサー|すぽんさー|sp)/i.test(text)) {
+        const note = text.replace(/^(スポンサー|すぽんさー|sp)\s*/i, '').replace(URL_RE, '').trim() || null;
+        await supabase.from('stocks').insert({ type: 'sponsor', url, note, sent_by: sentBy });
+        await lineReply(event.replyToken, '「スポンサー候補」に記録しました。');
+        continue;
+      }
+      if (/^(デザイン|でざいん|design)/i.test(text)) {
+        const note = text.replace(/^(デザイン|でざいん|design)\s*/i, '').replace(URL_RE, '').trim() || null;
+        await supabase.from('stocks').insert({ type: 'design', url, note, sent_by: sentBy });
+        await lineReply(event.replyToken, '「参考デザイン」に記録しました。');
+        continue;
+      }
 
-      // 先頭のコマンド語とURLを除いた残りをメモとして保存
-      const note =
-        text
-          .replace(/^(スポンサー|すぽんさー|sp|デザイン|でざいん|design)\s*/i, '')
-          .replace(URL_RE, '')
-          .trim() || null;
+      // ② 「メモしてください」の合言葉があるときだけ記録
+      if (MEMO_TRIGGER_RE.test(text)) {
+        const note = text.replace(MEMO_TRIGGER_RE, '').replace(URL_RE, '').trim() || null;
+        await supabase.from('stocks').insert({ type: 'inbox', url, note, sent_by: sentBy });
+        await lineReply(event.replyToken, '「ひらめきメモ」に記録しました。');
+        continue;
+      }
 
-      await supabase.from('stocks').insert({ type, url, note, sent_by: sentBy });
-
-      const shelf =
-        type === 'sponsor' ? 'スポンサー候補 🤝' : type === 'design' ? '参考デザイン 🖼' : 'ひらめきメモ 💡';
-      await lineReply(
-        event.replyToken,
-        `「${shelf}」の棚に入れたよ！\n${type === 'inbox' && url ? 'ヒント:「スポンサー」か「デザイン」を頭につけると自動で仕分けされるよ' : 'ナイス収集 ✨'}`
-      );
+      // ③ それ以外の普通の会話は無視（記録もせず、返信もしない）
+      continue;
     }
   }
 
@@ -126,5 +133,5 @@ export async function POST(req: Request) {
 
 // LINEの疎通確認(Verify)用
 export async function GET() {
-  return NextResponse.json({ status: 'Green Sophia LINE webhook is alive 🌿' });
+  return NextResponse.json({ status: 'Green Sophia LINE webhook is alive' });
 }
