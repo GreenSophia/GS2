@@ -496,3 +496,83 @@ ${i.activityIdea ? '入力した活動を、より発信につながる形にす
 - 実際に学生団体が無理なく準備できる範囲の提案にする
 - 誇張せず、実現可能性を優先する`;
 }
+
+// ---------- レポート・リアクションペーパー ----------
+export type ReportInput = {
+  courseName: string;
+  reportType: 'reaction' | 'report' | 'essay';
+  keywords: string;
+  notes: string;
+  hasStance: boolean;
+  stance: string;
+  argStrength: 'assert' | 'neutral' | 'question';
+  tone: 'desumasu' | 'dearu';
+  firstPerson: string;
+  citationStyle: string;
+  charCount: string;
+  structure: string;
+  experience: string;
+  avoidPhrases: string;
+};
+
+export function buildReportPrompt(i: ReportInput): string {
+  const typeLabel = i.reportType === 'reaction' ? 'リアクションペーパー'
+    : i.reportType === 'report' ? 'レポート' : '小論文';
+  const toneLabel = i.tone === 'desumasu' ? 'ですます調' : 'だである調';
+  const strengthLabel = i.argStrength === 'assert' ? '断定的に主張する'
+    : i.argStrength === 'neutral' ? '中立的に整理する' : '疑問を投げかける形にする';
+  const stanceBlock = i.hasStance
+    ? `- 立場: ${i.stance || '未記入'}\n- 論の強さ: ${strengthLabel}`
+    : '- 賛否のある議題ではない（純粋な考察・要約中心）';
+
+  return `# あなたの役割
+あなたは大学生の課題（レポート・リアクションペーパー）作成をサポートするアシスタントです。
+学生本人の考えや体験を尊重し、丸写しにならない、その人らしい文章の下書きを作成します。
+
+# 課題情報
+- 授業名・科目: ${i.courseName || '未記入'}
+- 課題の種類: ${typeLabel}
+
+# 授業内容のメモ
+## キーワード・単語
+${i.keywords || '（未記入）'}
+
+## 授業メモ・印象に残ったこと
+${i.notes || '（未記入）'}
+
+# 論の構え
+${stanceBlock}
+
+# 文体
+- 文体: ${toneLabel}
+- 一人称: ${i.firstPerson || '（指定なし。文脈に合わせて選ぶ）'}
+- 引用形式: ${i.citationStyle || '（特に指定なし）'}
+
+# 形式
+- 文字数の目安: ${i.charCount || '指定なし'}
+- 段落構成: ${i.structure || '自由（内容に応じて自然な流れで）'}
+
+# 独自性を出すための素材
+- 学生本人の実体験・具体例: ${i.experience || '（未記入。無理に作らず、内容の考察を深める方向で）'}
+- 避けたい表現・言い回し: ${i.avoidPhrases || '（特になし）'}
+
+# 依頼
+上記を踏まえて、${typeLabel}の下書きを作成してください。
+
+# 注意
+- 学生本人が書いたと自然に読める文章にすること（AIっぽい抽象論の連発は避ける）
+- 授業メモに書かれていない具体的な数字や引用を勝手に足さない（不明なら「（要確認）」と書く）
+- 学生の実体験を素材として入れた場合、それを軸に議論を展開する
+- 「〜すべきである」のような強い断定は、論の強さ設定に沿ってのみ使用
+- 提出する前に本人が読み返し、自分の言葉に差し替える前提の下書きであることを意識する
+
+# 出力フォーマット
+## 全体構成の提案
+（何段落構成でどう展開するかの見取り図。3〜5行）
+
+## 本文
+（実際の${typeLabel}本文。指定文字数を目安に）
+
+## 差し替え候補
+（本人がもっと自分らしくするために、書き換えを検討したい箇所を2〜3個ピックアップ。「この部分を、あなた自身のエピソードや意見に置き換えると独自性が出ます」というコメントつき）`;
+}
