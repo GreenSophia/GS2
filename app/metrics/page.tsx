@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { buildMediaKitText } from '@/lib/prompts';
 import CopyButton from './copy-button';
-import AnalysisForm from './analysis-form';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +100,7 @@ export default async function MetricsPage() {
       </div>
 
       <div id="analysis" className="divider-leaf"><span>分析プロンプト</span></div>
-      <AnalysisForm />
+     
 
       <div id="history" className="divider-leaf"><span>これまでの推移</span></div>
       <div className="card">
