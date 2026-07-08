@@ -82,6 +82,8 @@ export async function POST(req: Request) {
           .upload(path, buf, { contentType });
 
         if (!upErr) {
+          if (upErr) console.error('STORAGE_UPLOAD_ERROR:', JSON.stringify(upErr));
+        if (!upErr) {
           await supabase.from('stocks').insert({
             type: 'design',
             image_path: path,
