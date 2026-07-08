@@ -1,117 +1,142 @@
-'use client';
-import { useMemo, useState } from 'react';
-import { buildPostPrompt } from '@/lib/prompts';
+import { db } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+import PostForm from './post-form';
+import CompanyForm from './company-form';
+import AnnouncementForm from './announcement-form';
+import MeetingForm from './meeting-form';
 
-const THEMES = ['ビーチクリーン', 'ごみアート', '環境×アート', '企業コラボ', '学食コラボ', 'フェアトレード', '農業体験', '啓発コラム', '新歓・入会案内', '活動報告'];
-const TARGETS = ['環境に興味がある大学生', '新入生（入会検討中）', 'サークルをよく知らない一般学生', 'コラボ先の企業・団体', 'すでにフォローしてくれている人'];
-const GOALS = ['イベント参加を増やす', '入会DMにつなげる', '保存されるお役立ち投稿にする', 'フォロワーを増やす', '活動をきちんと報告する'];
+export const dynamic = 'force-dynamic';
 
-function Chips({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="chips" role="radiogroup">
-      {options.map((o) => (
-        <button
-          key={o}
-          type="button"
-          role="radio"
-          aria-checked={value === o}
-          className={`chip ${value === o ? 'on' : ''}`}
-          onClick={() => onChange(o)}
-        >
-          {o}
-        </button>
-      ))}
-    </div>
-  );
+const CATEGORIES = ['イベント告知', '活動報告', '啓発コラム', 'コラボ', 'その他'] as const;
+
+async function addTemplate(formData: FormData) {
+  'use server';
+  const title = String(formData.get('title') || '').trim();
+  const url = String(formData.get('url') || '').trim();
+  const category = String(formData.get('category') || 'その他');
+  const memo = String(formData.get('memo') || '').trim();
+  if (!title || !url) return;
+  await db().from('canva_templates').insert({ title, url, category, memo: memo || null });
+  revalidatePath('/prompts/post');
 }
 
-export default function PostPromptPage() {
-  const [theme, setTheme] = useState(THEMES[0]);
-  const [detail, setDetail] = useState('');
-  const [target, setTarget] = useState(TARGETS[0]);
-  const [goal, setGoal] = useState(GOALS[0]);
-  const [slides, setSlides] = useState(6);
-  const [cta, setCta] = useState('');
-  const [copied, setCopied] = useState(false);
+async function deleteTemplate(formData: FormData) {
+  'use server';
+  await db().from('canva_templates').delete().eq('id', String(formData.get('id')));
+  revalidatePath('/prompts/post');
+}
 
-  const prompt = useMemo(
-    () => buildPostPrompt({ theme, detail, target, slides, goal, cta }),
-    [theme, detail, target, slides, goal, cta]
-  );
+export default async function PostPromptPage() {
+  const [{ data: templates }, { data: recentStocks }] = await Promise.all([
+    db().from('canva_templates').select('*').order('category').order('created_at', { ascending: false }),
+    db().from('stocks').select('note, url, type').eq('type', 'design').order('created_at', { ascending: false }).limit(5),
+  ]);
 
-  async function copy() {
-    await navigator.clipboard.writeText(prompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  }
+  const grouped = CATEGORIES.map((c) => ({
+    category: c,
+    items: (templates ?? []).filter((t) => t.category === c),
+  })).filter((g) => g.items.length > 0);
+
+  const recentRefs = (recentStocks ?? [])
+    .map((s) => s.note || s.url)
+    .filter((v): v is string => !!v);
 
   return (
     <main className="container">
-      <span className="eyebrow">Act with Green Sophia</span>
-      <h1>✍️ 投稿プロンプトメーカー</h1>
-      <p className="muted">
-        選ぶだけで、Claudeに渡す「完璧な指示文」ができあがる。出てきた原稿は
-        <a href="/portal"> Canva棚</a> のテンプレに流し込もう。
-      </p>
+      <section className="masthead">
+        <div className="eyebrow">02　ACT — 作成</div>
+        <h1>作成</h1>
+        <p className="lede">
+          投稿・画像・Canvaテンプレの作成に加えて、イベント告知文・議事録・コラボ先企業のリサーチもここで作れます。
+        </p>
+      </section>
 
-      <div className="card">
-        <div className="field">
-          <label>1. なにについての投稿？</label>
-          <Chips options={THEMES} value={theme} onChange={setTheme} />
-        </div>
-        <div className="field">
-          <label>
-            2. くわしい内容 <span className="hint">日時・場所・伝えたいことなど。空欄でもOK</span>
-          </label>
-          <textarea
-            value={detail}
-            onChange={(e) => setDetail(e.target.value)}
-            placeholder="例: 7/11(土) 16-19時 鵠沼海岸でビーチクリーン。スイカ割りとアクセサリーWSも。持ち物は軍手。"
-          />
-        </div>
-        <div className="field">
-          <label>3. だれに届けたい？</label>
-          <Chips options={TARGETS} value={target} onChange={setTarget} />
-        </div>
-        <div className="field">
-          <label>4. この投稿のゴールは？</label>
-          <Chips options={GOALS} value={goal} onChange={setGoal} />
-        </div>
-        <div className="field" style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: '0 0 150px' }}>
-            <label>5. 画像の枚数</label>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={slides}
-              onChange={(e) => setSlides(Number(e.target.value))}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label>
-              6. 読者にしてほしい行動 <span className="hint">空欄なら定番CTAに</span>
-            </label>
-            <input
-              type="text"
-              value={cta}
-              onChange={(e) => setCta(e.target.value)}
-              placeholder="例: ストーリーズのリンクから参加申込"
-            />
-          </div>
-        </div>
+      <nav className="subnav" aria-label="作成内メニュー">
+        <a href="#prompt" className="active">投稿プロンプト</a>
+        <a href="#announce">告知文</a>
+        <a href="#meeting">議事録</a>
+        <a href="#canva">Canva棚</a>
+        <a href="#company">企業リサーチ・提案</a>
+      </nav>
+
+      <div id="prompt">
+        <PostForm recentRefs={recentRefs} />
       </div>
+
+      <div className="divider-leaf" id="announce"><span>活動告知文</span></div>
+      <AnnouncementForm />
+
+      <div className="divider-leaf" id="meeting"><span>議事録</span></div>
+      <MeetingForm />
+
+      <div className="divider-leaf" id="canva"><span>Canva棚</span></div>
 
       <div className="card tint-green">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>できあがったプロンプト</h2>
-          <button className="btn btn-primary btn-sm" onClick={copy}>
-            {copied ? 'コピーしたよ ✓' : 'コピーしてClaudeへ'}
-          </button>
-        </div>
-        <div className="prompt-out">{prompt}</div>
+        <h3 style={{ marginBottom: 12 }}>使い方</h3>
+        <ol style={{ margin: 0, paddingLeft: 22, lineHeight: 2 }}>
+          <li>普段サークルで使っているCanvaのテンプレートを、下のフォームから登録しておきます(最初に一度だけ)。</li>
+          <li>投稿を作るときは、テンプレート名をクリックするとそのCanvaが開きます。</li>
+          <li>上で作った文章・画像をCanvaに流し込み、写真を差し替えれば投稿が完成します。</li>
+        </ol>
       </div>
-      {copied && <div className="toast">クリップボードにコピーしました 🌿</div>}
+
+      {!grouped.length ? (
+        <div className="empty">
+          まだテンプレートが登録されていません。下のフォームから、サークルのCanvaテンプレートを追加してください。
+        </div>
+      ) : (
+        grouped.map((g) => (
+          <div className="card" key={g.category}>
+            <h2>{g.category}</h2>
+            {g.items.map((t) => (
+              <div className="stock-item" key={t.id}>
+                <div style={{ flex: 1 }}>
+                  <a href={t.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700 }}>
+                    {t.title}
+                  </a>
+                  {t.memo && <p className="muted" style={{ margin: '4px 0 0' }}>{t.memo}</p>}
+                </div>
+                <form action={deleteTemplate}>
+                  <input type="hidden" name="id" value={t.id} />
+                  <button className="btn btn-ghost btn-sm" type="submit">削除</button>
+                </form>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+
+      <div className="card tint-green">
+        <h2>テンプレートを追加する</h2>
+        <form action={addTemplate}>
+          <div className="field">
+            <label>名前</label>
+            <input type="text" name="title" placeholder="例: ビーチクリーン告知（水彩ブルー）" required />
+          </div>
+          <div className="field" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: 2, minWidth: 220 }}>
+              <label>CanvaのURL</label>
+              <input type="url" name="url" placeholder="https://www.canva.com/design/..." required />
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <label>カテゴリ</label>
+              <select name="category">
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="field">
+            <label>メモ <span className="hint">省略可</span></label>
+            <input type="text" name="memo" placeholder="例: カルーセル6枚用。表紙の写真は差し替えて使う" />
+          </div>
+          <button className="btn btn-primary" type="submit">棚に追加する</button>
+        </form>
+      </div>
+
+      <div className="divider-leaf" id="company"><span>企業リサーチ・提案</span></div>
+      <CompanyForm />
     </main>
   );
 }
