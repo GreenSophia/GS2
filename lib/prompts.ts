@@ -382,3 +382,19 @@ export function buildAnnouncementPrompt(i: AnnouncementInput): string {
 丁寧で失礼のないメール文面。件名つき。開催概要、参加・見学歓迎の旨、問い合わせ先を含める。`;
 }
 
+// ---------- 議事録・準備用（仮の枠組み） ----------
+export type AgendaItem = {
+  topic: string;
+  rawNotes: string;
+  decision: string;
+  owner: string;
+  deadline: string;
+};
+
+export function buildMeetingPrompt(item: AgendaItem): string {
+  return `ここにミーティング用のプロンプトを書く`;
+}
+
+export function buildPrepPlanPrompt(): string {
+  return `ここに準備企画用のプロンプトを書く`;
+}
