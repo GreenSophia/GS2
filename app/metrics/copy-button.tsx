@@ -15,7 +15,7 @@ export default function CopyButton({ text }: { text: string }) {
       >
         {copied ? 'コピーしたよ ✓' : 'コピーする'}
       </button>
-      {copied && <div className="toast">クリップボードにコピーしました 🌿</div>}
+      {copied && <div className="toast">クリップボードにコピー完了</div>}
     </>
   );
 }
