@@ -133,7 +133,7 @@ export default async function PostPromptPage() {
             </div>
           </div>
           <div className="field">
-            <label>メモ <span className="hint">省略可</span></label>
+            <label>メモ</label>
             <input type="text" name="memo" placeholder="例: カルーセル6枚用。表紙の写真は差し替えて使う" />
           </div>
           <button className="btn btn-primary" type="submit">棚に追加する</button>
