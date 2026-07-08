@@ -18,7 +18,7 @@ export default function LoginPage() {
     if (res.ok) {
       window.location.href = '/';
     } else {
-      setError('あいことばが違うみたい。もう一度確認してね');
+      setError('パスワードが違います');
       setBusy(false);
     }
   }
@@ -28,11 +28,11 @@ export default function LoginPage() {
       <div className="card" style={{ textAlign: 'center' }}>
         <span className="eyebrow">Welcome back!</span>
         <h1>Green Sophia<br />SNS Copilot</h1>
-        <p className="muted">部員共通の「あいことば」を入れてね 🌿</p>
+        <p className="muted">パスワード入力</p>
         <div className="field" style={{ textAlign: 'left' }}>
           <input
             type="password"
-            placeholder="あいことば"
+            placeholder="パスワード"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
@@ -41,10 +41,10 @@ export default function LoginPage() {
         </div>
         {error && <p style={{ color: '#c0563a', fontSize: '.86rem' }}>{error}</p>}
         <button className="btn btn-primary" style={{ width: '100%' }} onClick={submit} disabled={busy}>
-          {busy ? 'ひらいています…' : 'ひらく'}
+          {busy ? 'Loading…' : 'Enter'}
         </button>
         <p className="muted" style={{ marginTop: 14, fontSize: '.78rem' }}>
-          あいことばが分からないときは代表かSNS班に聞いてね
+          パスワードは情報班へ
         </p>
       </div>
     </div>
