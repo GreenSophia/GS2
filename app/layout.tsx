@@ -37,6 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="icon">📊</span>
             実績
           </a>
+          <a href="/study">
+            課題
+          </a>
         </nav>
       </body>
     </html>
