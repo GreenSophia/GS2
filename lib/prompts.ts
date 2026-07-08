@@ -382,19 +382,67 @@ export function buildAnnouncementPrompt(i: AnnouncementInput): string {
 丁寧で失礼のないメール文面。件名つき。開催概要、参加・見学歓迎の旨、問い合わせ先を含める。`;
 }
 
-// ---------- 議事録・準備用（仮の枠組み） ----------
+// ---------- 議事録作成（自由議題対応） ----------
 export type AgendaItem = {
-  topic: string;
-  rawNotes: string;
-  decision: string;
-  owner: string;
-  deadline: string;
+  topic: string;      // 議題（自由記述）
+  rawNotes: string;   // 話した内容のざっくりメモ
+  decision: string;   // 決定事項（決まらなければ「保留」等）
+  owner: string;      // 担当者
+  deadline: string;   // 期限
 };
 
-export function buildMeetingPrompt(item: AgendaItem): string {
-  return `ここにミーティング用のプロンプトを書く`;
-}
+export type MeetingInput = {
+  meetingName: string;   // 会議名（自由記述：幹部会、旅するGreenMTG 等）
+  date: string;
+  attendees: string;
+  absentees: string;
+  items: AgendaItem[];
+};
 
-export function buildPrepPlanPrompt(): string {
-  return `ここに準備企画用のプロンプトを書く`;
+export function buildMeetingPrompt(i: MeetingInput): string {
+  const itemsBlock = i.items
+    .map((it, idx) => `
+### 議題${idx + 1}：${it.topic || '（未記入）'}
+- 話した内容（メモ）：${it.rawNotes || '（未記入）'}
+- 決定事項：${it.decision || '（未記入・保留の場合はその旨）'}
+- 担当者：${it.owner || '（未記入）'}
+- 期限：${it.deadline || '（未記入）'}`)
+    .join('\n');
+
+  return `# あなたの役割
+あなたはGreen Sophiaの会議の議事録をまとめるアシスタントです。
+
+# 会議情報
+- 会議名: ${i.meetingName || '（未記入）'}
+- 日時: ${i.date || '（未記入）'}
+- 出席者: ${i.attendees || '（未記入）'}
+- 欠席者: ${i.absentees || 'なし'}
+
+# 各議題のメモ（そのまま貼っています）
+${itemsBlock}
+
+# 依頼
+上のメモをもとに、以下の構成で正式な議事録に整形してください。
+メモの言葉が足りない箇所は、文脈から自然な日本語に整えてよいですが、
+書かれていない決定事項やタスクを勝手に作らないでください（不明な場合は「要確認」と書く）。
+
+# 出力フォーマット
+## 会議概要
+（会議名・日時・出席者・欠席者を1〜2行で）
+
+## 決定事項サマリー
+（今回決まったことだけを、箇条書きで一覧化。議題をまたいでも良いので全体をざっと見て分かるように）
+
+## タスク一覧
+（表形式で：担当者｜内容｜期限。担当者ごとにグルーピングしても良い）
+
+## 議題ごとの詳細
+（議題1つずつ、話した内容の要約と決定事項を簡潔に）
+
+## 次回への持ち越し・未決事項
+（保留になったこと、次回いつまでに誰が判断するか）
+
+# 注意
+- 「〜だと思う」のような曖昧な決定は、決定事項に含めず「議論」として扱う
+- タスクは必ず担当者名を明記する。担当者が不明なものは「担当者未定」と明記し、放置しない`;
 }
