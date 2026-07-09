@@ -2,31 +2,43 @@ import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { buildMediaKitText } from '@/lib/prompts';
 import CopyButton from './copy-button';
-
+import AnalysisForm from './analysis-form';
 
 export const dynamic = 'force-dynamic';
 
 async function saveMetric(formData: FormData) {
   'use server';
   const monthInput = String(formData.get('month') || '');
+  const account = String(formData.get('account') || 'main');
   if (!monthInput) return;
   const num = (k: string) => {
     const v = String(formData.get(k) || '').replace(/[,，]/g, '').trim();
     return v ? Number(v) : null;
+  };
+  const txt = (k: string) => {
+    const v = String(formData.get(k) || '').trim();
+    return v || null;
   };
   await db()
     .from('monthly_metrics')
     .upsert(
       {
         month: `${monthInput}-01`,
+        account,
         followers: num('followers'),
         reach: num('reach'),
         profile_views: num('profile_views'),
         posts_count: num('posts_count'),
-        best_post: String(formData.get('best_post') || '').trim() || null,
-        note: String(formData.get('note') || '').trim() || null,
+        impressions: num('impressions'),
+        post_views: num('post_views'),
+        story_views: num('story_views'),
+        reel_views: num('reel_views'),
+        top5_views: txt('top5_views'),
+        top5_likes: txt('top5_likes'),
+        best_post: txt('best_post'),
+        note: txt('note'),
       },
-      { onConflict: 'month' }
+      { onConflict: 'month,account' }
     );
   revalidatePath('/metrics');
 }
@@ -37,10 +49,18 @@ async function deleteMetric(formData: FormData) {
   revalidatePath('/metrics');
 }
 
-export default async function MetricsPage() {
+export default async function MetricsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ account?: string }>;
+}) {
+  const { account: accountParam } = await searchParams;
+  const account = accountParam === 'travel' ? 'travel' : 'main';
+
   const { data: rows } = await db()
     .from('monthly_metrics')
     .select('*')
+    .eq('account', account)
     .order('month', { ascending: false });
 
   const mediaKit = rows?.length ? buildMediaKitText(rows as any) : '';
@@ -56,6 +76,16 @@ export default async function MetricsPage() {
         </p>
       </section>
 
+      <div className="card">
+        <label style={{ display: 'block', fontSize: '.82rem', fontWeight: 700, marginBottom: 8 }}>
+          どちらのアカウント？
+        </label>
+        <div className="chips">
+          <a href="/metrics?account=main" className={`chip ${account === 'main' ? 'on' : ''}`}>Green Sophia</a>
+          <a href="/metrics?account=travel" className={`chip ${account === 'travel' ? 'on' : ''}`}>旅するGreen</a>
+        </div>
+      </div>
+
       <nav className="subnav" aria-label="実績内メニュー">
         <a href="#record" className="active">数字を記録</a>
         <a href="#analysis">分析プロンプト</a>
@@ -65,6 +95,7 @@ export default async function MetricsPage() {
       <div id="record" className="card tint-green">
         <h2>今月の数字を記録する</h2>
         <form action={saveMetric}>
+          <input type="hidden" name="account" value={account} />
           <div className="field" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: '0 0 160px' }}>
               <label>月</label>
@@ -87,20 +118,53 @@ export default async function MetricsPage() {
               <input type="text" name="posts_count" inputMode="numeric" />
             </div>
           </div>
+
+          <h3 style={{ marginTop: 20 }}>コンテンツ閲覧数（直近1ヶ月）</h3>
+          <div className="field" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <label>コンテンツ閲覧数合計</label>
+              <input type="text" name="impressions" placeholder="45000" inputMode="numeric" />
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <label>投稿の閲覧</label>
+              <input type="text" name="post_views" inputMode="numeric" />
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <label>ストーリーズの閲覧</label>
+              <input type="text" name="story_views" inputMode="numeric" />
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <label>リールの閲覧</label>
+              <input type="text" name="reel_views" inputMode="numeric" />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>コンテンツ閲覧数トップ5 <span className="hint">カンマ区切りで5件</span></label>
+            <textarea name="top5_views" placeholder="例: ガムはプラスチック製!?コラム, 野鳥観察会, ビーチクリーン告知, 学食コラボ, 環境×アート" />
+          </div>
+          <div className="field">
+            <label>コンテンツ別いいねトップ5 <span className="hint">カンマ区切りで5件</span></label>
+            <textarea name="top5_likes" placeholder="例: ガムはプラスチック製!?コラム, ビーチクリーン告知, 野鳥観察会, 学食コラボ, 環境×アート" />
+          </div>
+
           <div className="field">
             <label>いちばん伸びた投稿 <span className="hint">省略可</span></label>
             <input type="text" name="best_post" placeholder="例: ガムはプラスチック製!?コラム（保存120）" />
           </div>
           <div className="field">
             <label>メモ <span className="hint">省略可</span></label>
-            <input type="text" name="note" placeholder="例: 新歓期でフォロワー増" />
+            <input type="text" name="note" placeholder="例: 新歓期でフォロワー増。リール強化月間だった" />
           </div>
           <button className="btn btn-primary" type="submit">この月を記録する</button>
+          <p className="muted" style={{ marginTop: 8, fontSize: '.78rem' }}>
+            同じ月・同じアカウントをもう一度記録すると上書きされます
+          </p>
         </form>
       </div>
 
       <div id="analysis" className="divider-leaf"><span>分析プロンプト</span></div>
-     
+      <AnalysisForm account={account} />
 
       <div id="history" className="divider-leaf"><span>これまでの推移</span></div>
       <div className="card">
@@ -110,7 +174,9 @@ export default async function MetricsPage() {
           <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead>
-                <tr><th>月</th><th>フォロワー</th><th>リーチ</th><th>プロフ閲覧</th><th>投稿数</th><th></th></tr>
+                <tr>
+                  <th>月</th><th>フォロワー</th><th>リーチ</th><th>閲覧数合計</th><th>投稿/ストーリーズ/リール</th><th></th>
+                </tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
@@ -120,8 +186,8 @@ export default async function MetricsPage() {
                       <td>{d.getFullYear()}年{d.getMonth() + 1}月</td>
                       <td>{fmt(r.followers)}</td>
                       <td>{fmt(r.reach)}</td>
-                      <td>{fmt(r.profile_views)}</td>
-                      <td>{fmt(r.posts_count)}</td>
+                      <td>{fmt(r.impressions)}</td>
+                      <td>{fmt(r.post_views)} / {fmt(r.story_views)} / {fmt(r.reel_views)}</td>
                       <td>
                         <form action={deleteMetric}>
                           <input type="hidden" name="id" value={r.id} />
