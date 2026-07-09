@@ -10,8 +10,8 @@ const LEVELS = [
 
 const PERSONAS = [
   { key: 'neutral', label: '中立・丁寧' },
-  { key: 'strict', label: '厳しめの教授' },
-  { key: 'friendly', label: '親しみやすい先輩' },
+  { key: 'strict', label: '厳しめ' },
+  { key: 'friendly', label: '優しく' },
   { key: 'custom', label: 'キャラクターを指定' },
 ] as const;
 
